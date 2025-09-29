@@ -1,6 +1,9 @@
 import random
 from typing import List, Optional
 
+from utils import display_skip_list
+
+# for replicability
 random.seed(130399)
 
 
@@ -78,7 +81,7 @@ class SkipList:
         new_node = SkipListNode(q, new_level)
 
         # if we added a new layer, we have to update the
-        # list level (e.g. if no node before was at layer 3,
+        # list level (e.g. if any node before was at layer 3,
         # and this new one reaches 4, we have to update other
         # nodes properly)
         if new_level > self.level:
@@ -93,43 +96,6 @@ class SkipList:
             new_node.forward[level] = update[level].forward[level]
             update[level].forward[level] = new_node
 
-    def display(self):
-        layers = []
-        current = self._header.forward[0]
-
-        # get all the low level items
-        while current is not None:
-            layers.append(
-                [str(current)] * (current.level + 1)
-                + [None] * (self.level - current.level - 1)
-            )
-
-            current = current.forward[0]
-
-        layers = list(zip(*layers))
-
-        for level in range(self.level - 1, -1, -1):
-            print(f"#{level}#--", end="")
-            if layers[level][0] is not None:
-                print(">", end="")
-            else:
-                print("-", end="")
-            for i, node in enumerate(layers[level]):
-                if node is not None:
-                    print(node, end="")
-                else:
-                    print("----", end="")
-
-                if i == len(layers[level]) - 1:
-                    print("-->[]", end="")
-                    continue
-
-                if layers[level][i + 1] is not None:
-                    print("-->", end="")
-                else:
-                    print("---", end="")
-            print()
-
 
 if __name__ == "__main__":
     s = SkipList(p=0.75, max_level=5)
@@ -137,4 +103,4 @@ if __name__ == "__main__":
     for _ in range(10):
         s.insert(random.randrange(0, 100))
 
-    s.display()
+    display_skip_list(s)

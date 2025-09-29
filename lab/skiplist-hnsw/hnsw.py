@@ -1,12 +1,9 @@
 import math
 import random
-import statistics
-from collections import defaultdict, deque
+from collections import deque
 from typing import Any, Callable, List, Optional, Set
 
-from tabulate import tabulate
-from tqdm import tqdm
-
+# for replicability
 random.seed(130397)
 
 
@@ -21,12 +18,6 @@ class GraphNode:
 
     def __hash__(self) -> int:
         return hash(self.item)
-
-    def __str__(self) -> str:
-        return f"({self.item}@{self.level})"
-
-    def __repr__(self) -> str:
-        return f"({self.item}@{self.level})"
 
 
 def basic_distance(a: GraphNode, b: GraphNode):
@@ -67,6 +58,12 @@ class HNSW:
         return math.floor(
             -math.log(random.random(), math.e) * self.normalization_factor
         )
+
+    def _nearest(self, q: GraphNode, points: Set[GraphNode]) -> GraphNode:
+        return min(points, key=lambda w: self.distance(q, w))
+
+    def _furthest(self, q: GraphNode, points: Set[GraphNode]) -> GraphNode:
+        return max(points, key=lambda w: self.distance(q, w))
 
     def insert(self, q: Any):
         W = set()
@@ -217,21 +214,6 @@ class HNSW:
 
         return traversal_order
 
-    def _nearest(self, q: GraphNode, points: Set[GraphNode]) -> GraphNode:
-        return min(points, key=lambda w: self.distance(q, w))
-
-    def _furthest(self, q: GraphNode, points: Set[GraphNode]) -> GraphNode:
-        return max(points, key=lambda w: self.distance(q, w))
-
-
-def get_ground_truth(q: Any, nodes: List[Any], k):
-    nodes = [n for n in nodes if n != q]
-    return sorted(sorted(nodes, key=lambda x: abs(q - x))[:k])
-
-
-def recall(ground_truth: List[Any], results: List[Any], k: int):
-    return len(set(ground_truth) & set(results)) / k
-
 
 if __name__ == "__main__":
     # max number of neighbors per layer
@@ -257,16 +239,8 @@ if __name__ == "__main__":
     INDEX_SIZE = int(1e3)
     NUM_QUERIES = 100
 
-    all_nodes = []
-    for q in tqdm(
-        random.sample(range(0, MAX_RANGE), INDEX_SIZE),
-        desc="Insertion: ",
-        total=INDEX_SIZE,
-    ):
+    for q in random.sample(range(0, MAX_RANGE), INDEX_SIZE):
         hsnw.insert(q)
-        all_nodes.append(q)
-
-    all_nodes.sort()
 
     visited = hsnw.traverse_hnsw_graph()
     print(f"#connected nodes: {len(visited)}")
@@ -276,33 +250,10 @@ if __name__ == "__main__":
     # of the K parameter
     ef_search = 16
 
-    k_values = [1, 3, 5, 10]
-    results = defaultdict(list)
+    # query item
+    q = GraphNode(item=30)
 
-    for k in tqdm(k_values, desc="Query: "):
-        for q in tqdm(
-            random.sample(range(0, MAX_RANGE), NUM_QUERIES),
-            desc=f"K = {k}: ",
-            leave=False,
-            position=2,
-        ):
-            knn = hsnw.knn(GraphNode(q), k, ef=ef_search)
-            gt = get_ground_truth(q, all_nodes, k)
+    # number of results to return
+    k = 10
 
-            r = recall(gt, knn, k)
-
-            results[k].append(r)
-
-    stats = []
-
-    for k, scores in results.items():
-        mean = statistics.mean(scores)
-        stdev = statistics.stdev(scores)
-        median = statistics.median(scores)
-
-        stats.append((k, mean, stdev, median, min(scores), max(scores)))
-
-    print("Recall@K results")
-    print(
-        tabulate(stats, headers=["K", "mean", "stdev", "mean", "min", "max"]), end="\n"
-    )
+    knn = hsnw.knn(q, k, ef=ef_search)
