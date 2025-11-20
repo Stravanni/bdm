@@ -1,0 +1,327 @@
+\documentclass{beamer}
+\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage{caption}
+\usepackage{algorithmic}
+\usepackage{verbatim}
+\usepackage{anyfontsize}
+
+\usetheme{moloch}
+
+\usepackage{url}
+
+\title{Probabilistic Data Structures}
+\subtitle{Big Data Management and Governance}
+\author{Prof. Giovanni Simonini, Giovanni Malaguti}
+\institute{University of Modena and Reggio Emilia}
+\date{\today}
+
+
+\begin{document}
+
+\maketitle
+
+\begin{frame}[fragile, t]{Details of the Lab (1)}
+	\begin{itemize}
+		\item We will implement Bloom Filter and Count-min Sketch (and Cuckoo Filter, if we have time).
+		\item Simple implementations, no optimization and we won't cover all the details.
+		\item Goal: to obtain new data structures that support creation, insert and some kind of search operations.
+		\item At home, attempt to implement other operations (e.g. delete), extend our simple implementations with
+		      other known optimizations (e.g. use more than one bucket for cuckoo filter).
+	\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile, t]{Details of the Lab (2)}
+	\begin{itemize}
+		\item Clone (or update) the repository \url{https://github.com/Stravanni/bdm.git}.
+		\item In bdm/lab/prob-data-struct/exercises/ there are two files with empty implementations of Bloom Filter and Count-min Sketch.
+		\item Solutions will be uploaded at the end of the lab.
+		\item In utils.py there are helper functions for visualization and experiments.
+	\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile, t]{Details of the Lab (3-*nix/Mac)}
+	Open a shell and move to the current lab folder.
+	\begin{verbatim}
+    $ cd /path/to/the/cloned/repo
+  \end{verbatim}
+
+	There create the Python virtual environment. You can use any python environment manager (conda, uv, poetry, ...).
+	Here, for simplicity, we will use the Python venv module:
+	\begin{verbatim}
+      (skiplist-hnsw)$ python -m venv .venv
+  \end{verbatim}
+
+	Activate the environment:
+	\begin{verbatim}
+      (skiplist-hnsw)$ source .venv/bin/activate
+  \end{verbatim}
+
+	Install the required packages:
+	\begin{small}
+		\begin{verbatim}
+      (skiplist-hnsw)$ pip install -r requirements.txt
+  \end{verbatim}
+	\end{small}
+\end{frame}
+
+\begin{frame}[fragile, t]{Details of the Lab (3-Windows)}
+	Open a command-line prompt (e.g. Powershell). Then, move to the current lab folder.
+	\begin{verbatim}
+    $ cd path\to\the\cloned\repo 
+  \end{verbatim}
+
+	There create the Python virtual environment. You can use any python env manager (conda, uv, poetry, ...).
+	Here, for simplicity, we will use the Python venv module:
+	\begin{verbatim}
+      (skiplist-hnsw)$ python -m venv .venv
+  \end{verbatim}
+
+	Activate the environment:
+	\begin{verbatim}
+      (skiplist-hnsw)$ .venv/Scripts/activate
+  \end{verbatim}
+
+	Install the required packages:
+	\begin{small}
+		\begin{verbatim}
+      (skiplist-hnsw)$ pip install -r requirements.txt
+  \end{verbatim}
+	\end{small}
+\end{frame}
+
+\begin{frame}[fragile, t]{Details of the Lab (4)}
+	In the folder bdm/lab/prob-data-struct/data there is the file urls.zip
+
+	Extract the CSV from the archive in the same folder. We will use this just for a
+	short demonstration of the data structures.
+\end{frame}
+
+
+
+\begin{frame}
+	\section{Bloom Filter}
+\end{frame}
+
+\begin{frame}[fragile, t]{Bloom Filter: Definition}
+	\begin{itemize}
+		\item Data structure for set membership introduced in 1970 \cite{bloom1970}
+		\item Each inserted item is hashed with multiple functions; the digests are used to set to 1 the bits of a bitarray
+		\item At query time, an item is hashed with the same functions: if all the required bits are 1, the item
+		      \textit{may be} contained. Otherwise, the item is \textit{not} contained.
+		\item More scalable than hash-sets and other classical data structure, both for space and time complexity.
+	\end{itemize}
+
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.35\linewidth]{images/bloom-filter.png}
+		\captionsetup{font=scriptsize}
+		\caption{Example of Bloom Filter}
+		\label{fig:bloom-filter}
+	\end{figure}
+\end{frame}
+
+
+\begin{frame}[fragile, t]{Bloom Filter: False-Positive Rate Calibration}
+	When dealing with Bloom Filters, the size of the bitarray $m$ and the number of functions $k$ have to be calibrated with respect
+	to the expected number of items and the desired false positive rate.
+
+	\begin{equation}
+		m = - \left\lceil \frac{n \ln(\epsilon)}{(\ln 2)^2} \right\rceil
+	\end{equation}
+
+	\begin{equation}
+		k = \left\lceil \frac{m \ln 2}{n} \right\rceil
+	\end{equation}
+\end{frame}
+
+
+\begin{frame}[fragile, t]{Bloom Filter: Insert and Check}
+	\begin{algorithm}[H]
+		\captionsetup{font=scriptsize}
+		\caption{Insert (x)}
+		\begin{algorithmic}[1]
+			\algsetup{linenosize=\scriptsize}
+			\scriptsize
+			\REQUIRE $H$ set of hash functions, $ba$ bitarray storing the filter, $x$ item to insert
+			\ENSURE item $x$ inserted into the filter
+			\FOR{$h$ in $H$}
+			\STATE $i = h(x) \pmod{m}$
+			\STATE $ba[i] = 1$
+			\ENDFOR
+		\end{algorithmic}
+	\end{algorithm}
+
+	\begin{algorithm}[H]
+		\captionsetup{font=scriptsize}
+		\caption{Check (x)}
+		\begin{algorithmic}[1]
+			\algsetup{linenosize=\scriptsize}
+			\scriptsize
+			\REQUIRE $H$ set of hash functions, $ba$ bitarray storing the filter, $x$ query item
+			\FOR{$h$ in $H$}
+			\STATE $i = h(x) \pmod{m}$
+			\IF{$ba[i] \ne 1$}
+			\RETURN \texttt{False}
+			\ENDIF
+			\ENDFOR
+			\RETURN \texttt{True}
+		\end{algorithmic}
+	\end{algorithm}
+\end{frame}
+
+\begin{frame}
+	\section{Cuckoo Filter}
+\end{frame}
+
+\begin{frame}[fragile, t]{Cuckoo Filter: Definition}
+	\begin{itemize}
+		\item Data structure for set membership instroduced in 2014 \cite{cuckoo2014}
+		\item In contrast to Bloom Filters, this data structure supports also deletion
+		\item A Bloom Filter is a list of $B$ buckets, each of them storing $M$ fingerprints (in our implementation, only one)
+	\end{itemize}
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.4\linewidth]{images/cuckoo-filter.jpg}
+		\captionsetup{font=scriptsize}
+		\caption{Example of Cuckoo Filter}
+		\label{fig:cuckoo-filter}
+	\end{figure}
+\end{frame}
+
+\begin{frame}[fragile, t]{Cuckoo Filter: Insert}
+	\begin{algorithm}[H]
+		\captionsetup{font=scriptsize}
+		\caption{Insert}
+		\begin{algorithmic}[1]
+			\algsetup{linenosize=\scriptsize}
+			\scriptsize
+			\REQUIRE Item $x$ to insert, list of buckets $buckets$ of size $B$
+			\ENSURE Item inserted or failure if filter is full
+			\STATE $f = \text{fingerprint}(x)$
+			\STATE $i_1 = \text{hash}(x) \pmod{B}$
+			\STATE $i_2 = \text{hash}(f) \oplus \text{hash}(i1) \pmod{B}$
+
+			\IF{$buckets[i_1]$ or $buckets[i_2]$ are empty}
+			\STATE add $f$ to that bucket
+			\RETURN \texttt{Done}
+			\ENDIF
+
+			\STATE $i =$ randomly pick $i_1$ or $i_2$
+			\FOR{$n=0; n < MaxNumKicks; n++$}
+			\STATE swap $f$ with the content in bucket $i$
+			\STATE $i = i \oplus \text{hash}(f) \pmod{B}$
+			\IF{$buckets[i]$ is empty}
+			\STATE add $x$ to $buckets[i]$
+			\RETURN \texttt{Done}
+			\ENDIF
+			\ENDFOR
+			\RETURN \texttt{Failure}
+		\end{algorithmic}
+	\end{algorithm}
+\end{frame}
+
+
+\begin{frame}[fragile, t]{Cuckoo Filter: Contains and Delete}
+	\begin{algorithm}[H]
+		\captionsetup{font=scriptsize}
+		\caption{Check (x)}
+		\begin{algorithmic}[1]
+			\algsetup{linenosize=\scriptsize}
+			\scriptsize
+			\STATE $f = \text{fingerprint}(x)$
+			\STATE $i_1 = \text{hash}(x) \pmod{B}$
+			\STATE $i_2 = i_1 \oplus \text{hash}(f) \pmod{B}$
+
+			\IF{$buckets[i_1]$ or $buckets[i_2]$ has $f$}
+			\RETURN \texttt{True}
+			\ENDIF
+			\RETURN \texttt{False}
+		\end{algorithmic}
+	\end{algorithm}
+
+	\begin{algorithm}[H]
+		\captionsetup{font=scriptsize}
+		\caption{Delete (x)}
+		\begin{algorithmic}[1]
+			\algsetup{linenosize=\scriptsize}
+			\scriptsize
+			\STATE $f = \text{fingerprint}(x)$
+			\STATE $i_1 = \text{hash}(x) \pmod{B}$
+			\STATE $i_2 = i_1 \oplus \text{hash}(f) \pmod{B}$
+
+			\IF{$buckets[i_1] or buckets[i_2] has f$}
+			\STATE Remove a copy of $f$ from this bucket
+			\RETURN \texttt{True}
+			\ENDIF
+			\RETURN \texttt{False}
+		\end{algorithmic}
+	\end{algorithm}
+\end{frame}
+
+\begin{frame}
+	\section{Count-Min Sketch}
+\end{frame}
+
+
+\begin{frame}[fragile, t]{Count-Min Sketch: Definition}
+	\begin{itemize}
+		\item Data structure to compute \textit{upper}-bounds of occurences of items in a data stream, introduced in 2005 \cite{cms2005}
+		\item A CM sketch is a table $M$ of depth $d$ and width $w$, initialized with all zeros.
+		\item An item is hashed with $d$ different functions: the $i$-th function gives a position in table row $i$, and
+		      the value there is increased.
+		\item At query time, is returned the minimum of the $d$ possible counts given by the set of functions for the query item.
+	\end{itemize}
+
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.6\linewidth]{images/cm.png}
+		\captionsetup{font=scriptsize}
+		\caption{Example of Count-Min Sketch}
+		\label{fig:count-min-sketch}
+	\end{figure}
+\end{frame}
+
+\begin{frame}[fragile, t]{Count-Min Sketch: Insert and Check}
+	\begin{algorithm}[H]
+		\captionsetup{font=scriptsize}
+		\caption{Insert (x)}
+		\begin{algorithmic}[1]
+			\algsetup{linenosize=\scriptsize}
+			\scriptsize
+			\REQUIRE $H$ list of hash functions, $M$ table storing $[dxw]$ counts, $x$ item to insert
+			\ENSURE $M$ counts updated with respect to $x$ hash values
+			\FOR{$i$ in 1..$d$}
+			\STATE $j = H[i](x) \pmod{w}$
+			\STATE $M[i][j] += 1$
+			\ENDFOR
+		\end{algorithmic}
+	\end{algorithm}
+
+	\begin{algorithm}[H]
+		\captionsetup{font=scriptsize}
+		\caption{Check (x)}
+		\begin{algorithmic}[1]
+			\algsetup{linenosize=\scriptsize}
+			\scriptsize
+			\REQUIRE $x$ query item
+			\ENSURE An upper-bound of the occurences of $x$ in the inserted data
+			\STATE $values = \emptyset$
+			\FOR{$i$ in 1..$d$}
+			\STATE $j = H[i](x) \pmod{w}$
+			\STATE $values = values \cup H[i][j]$
+			\ENDFOR
+			\RETURN $min(values)$
+		\end{algorithmic}
+	\end{algorithm}
+\end{frame}
+
+
+\begin{frame}{References}
+	\bibliographystyle{acm}
+	\bibliography{references}
+\end{frame}
+
+\end{document}

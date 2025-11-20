@@ -1,0 +1,364 @@
+\documentclass{beamer}
+\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage{caption}
+\usepackage{algorithmic}
+\usepackage{verbatim}
+\usepackage{anyfontsize}
+
+\usetheme{moloch}
+
+\usepackage{url}
+
+\title{Skip List and HNSW}
+\subtitle{Big Data Management and Governance}
+\author{Prof. Giovanni Simonini, Giovanni Malaguti}
+\institute{University of Modena and Reggio Emilia}
+\date{\today}
+
+
+\begin{document}
+
+\maketitle
+
+\begin{frame}[fragile, t]{Details of the Lab (1)}
+\begin{itemize}
+    \item We will implement Skip List and HNSW data structures
+    \item Simple implementations, no optimization and we won't cover all the details
+    \item Goal: to obtain two new data structures that support creation, insert and some kind of search operations
+    \item At home, attempt to implement other operations (e.g., key-value semantics, different distance functions, update, delete) and identify necessary code changes
+\end{itemize}
+\end{frame}
+
+
+
+\begin{frame}[fragile, t]{Details of the Lab (2)}
+
+\begin{itemize}
+    \item Clone the repository \url{https://github.com/Stravanni/bdm.git}
+    \item Inside the cloned repository, navigate to "bdm/lab/skiplist-hnsw"
+    \item There are three files: skip\_list.py, hnsw.py, and utils.py
+    \item We will implement algorithms and data structures inside the first two files from scratch. In utils.py there are helper functions for visualization and experiments
+\end{itemize}
+    
+\end{frame}
+
+
+\begin{frame}[fragile, t]{Details of the Lab (3)}
+Open a shell and move to the lab folder. There create the virtual environment:
+\begin{verbatim}
+    (skiplist-hnsw)$ python -m venv .venv
+\end{verbatim}
+
+Activate the environment:
+\begin{verbatim}
+    (skiplist-hnsw)$ source .venv/bin/activate
+\end{verbatim}
+
+Install the required packages:
+\begin{small}
+  
+\begin{verbatim}
+    (skiplist-hnsw)$ pip install -r requirements.txt
+\end{verbatim}
+\end{small}
+\end{frame}
+
+
+
+\begin{frame}
+\section{Skip Lists}
+\end{frame}
+
+\begin{frame}[t]
+\frametitle{SkipList: Definition}
+\begin{itemize}
+    \item Linked List + Binary-search tree/sorted arrays
+    \item Each node has 1+ layers, and each layer might be connected to different nodes
+    \item Layers are assigned following a geometric distribution
+    \item We'll use a simple implementation of Skip Lists, but you can extend it to include key-value pairs inside nodes
+\end{itemize}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{images/skiplist_example.png}
+    \captionsetup{font=scriptsize}
+    \caption{Example of Skip List (from \cite{pugh1990skiplist})}
+    \label{fig:skiplist}
+\end{figure}
+\end{frame}
+
+
+\begin{frame}{Search}
+
+\begin{algorithm}[H]
+\captionsetup{font=scriptsize}
+\caption{Search}
+\begin{algorithmic}[1]
+\algsetup{linenosize=\scriptsize}
+\scriptsize
+\REQUIRE Skip list $S$ with header $head$, value to search $q$
+\ENSURE Node with $q$ if present, $NIL$ otherwise
+
+\STATE $current \leftarrow head$
+\STATE $level \leftarrow$ max level of the skip list
+
+\FOR{$i = level$ \TO $0$}
+    \WHILE{$current.forward[i] \neq NIL$
+        
+        \quad\quad \AND $current.forward[i].item < q$}
+        \STATE $current \leftarrow current.forward[i]$
+    \ENDWHILE
+\ENDFOR
+
+\STATE $current \leftarrow current.forward[0]$
+
+\IF{$current \neq NIL$ \AND $current.item = q$}
+    \RETURN $current$
+\ELSE
+    \RETURN $NIL$
+\ENDIF
+
+\end{algorithmic}
+\end{algorithm}
+\end{frame}
+
+
+\begin{frame}{Random Level Generation}
+\begin{algorithm}[H]
+\captionsetup{font=scriptsize}
+\caption{Random Level Generation}
+\begin{algorithmic}[1]
+\algsetup{linenosize=\scriptsize}
+\scriptsize
+\REQUIRE Probability $p$, max level $maxLevel$
+\ENSURE Random level for the new node
+
+\STATE $level \leftarrow 0$
+\WHILE{random() $< p$ \AND $level < maxLevel$}
+    \STATE $level \leftarrow level + 1$
+\ENDWHILE
+\RETURN $level$
+
+\end{algorithmic}
+\end{algorithm}
+\end{frame}
+
+
+
+\begin{frame}{Insertion}
+\vspace{-2pt}
+\begin{algorithm}[H]
+\captionsetup{font=scriptsize}
+\caption{Insert}
+\begin{algorithmic}[1]
+\algsetup{linenosize=\tiny}
+\tiny
+\REQUIRE Skip list $S$ with header $head$, value $q$
+\ENSURE Skip list updated with the new node
+
+\STATE $update \leftarrow$ array of pointers with size $maxLevel + 1$
+\STATE $current \leftarrow head$
+\STATE $level \leftarrow$ current max level
+
+\FOR{$i = level$ \TO $0$}
+    \WHILE{$current.forward[i] \neq NIL$ \AND $current.forward[i].item < q$}
+        \STATE $current \leftarrow current.forward[i]$
+    \ENDWHILE
+    \STATE $update[i] \leftarrow current$
+\ENDFOR
+
+\STATE $current \leftarrow current.forward[0]$
+
+\IF{$current \neq NIL$ \AND $current.item = q$}
+    \RETURN
+\ENDIF
+
+\STATE $newLevel \leftarrow$ \textbf{RandomLevel}()
+\STATE $newNode \leftarrow$ createNode($q$, $newLevel$)
+
+\IF{$newLevel > currentLevel$}
+    \FOR{$i = currentLevel + 1$ \TO $newLevel$ + 1}
+        \STATE $update[i] \leftarrow head$
+    \ENDFOR
+    \STATE $currentLevel \leftarrow newLevel$
+\ENDIF
+
+\FOR{$i = 0$ \TO $newLevel$ + 1}
+    \STATE $newNode.forward[i] \leftarrow update[i].forward[i]$
+    \STATE $update[i].forward[i] \leftarrow newNode$
+\ENDFOR
+
+\end{algorithmic}
+\end{algorithm}
+\end{frame}
+
+\begin{frame}
+\section{HNSW}
+\end{frame}
+
+\begin{frame}{From Skip Lists to HNSW}
+    \begin{itemize}
+        \item HNSW\cite{malkov2018efficientrobustapproximatenearest} is a generalization of Skip List data structure 
+        \item Each node can have $\ge1$ neighbors at each level, not just one
+        \item The neighbors are a proximity graph of the node
+    \end{itemize}
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.3\linewidth]{images/hnsw_example.png}
+        \captionsetup{font=scriptsize}
+        \caption{An HNSW graph}
+        \label{fig:hnsw_exampler}
+    \end{figure}
+\end{frame}
+
+
+
+\begin{frame}{Search}
+\begin{algorithm}[H]
+\captionsetup{font=scriptsize}
+\caption{Search}
+\begin{algorithmic}[1]
+\algsetup{linenosize=\scriptsize}
+\scriptsize
+\REQUIRE multilayer graph $hnws$, query element $q$, number of nearest neighbors to return $K$, size of the dynamic candidate list $efSearch$
+\ENSURE $K$ nearest neighbors to $q$
+
+\STATE $W \leftarrow \emptyset$
+\STATE $ep \leftarrow$ enter point for $hnsw$
+\STATE $L \leftarrow$ level of $ep$
+
+\FOR{$l_c \leftarrow L... 0$}
+    \STATE $W \leftarrow $ \textbf{SearchLayer}$(q, ep, ef=1, l_c)$
+    \STATE $ep \leftarrow$ get nearest element from $W$ to $q$
+\ENDFOR
+
+\STATE $W \leftarrow $ SearchLayer$(q, ep, ef=efSearch, l_c=0)$
+\RETURN \textbf{SelectNeighborsSimple}$(q, W, K)$
+
+\end{algorithmic}
+\end{algorithm}    
+\end{frame}
+
+
+\begin{frame}{Search: how to search candidates on each layer?}
+\begin{algorithm}[H]
+\captionsetup{font=scriptsize}
+\caption{Search\-Layer}
+\begin{algorithmic}[1]
+\algsetup{linenosize=\tiny}
+\tiny
+\REQUIRE query element $q$, enter point\textbf{s} $ep$, number of nearest neighbors to $q$ to return $ef$, layer number $l_c$
+\ENSURE $ef$ nearest neighbors to $q$
+\STATE $v \leftarrow ep$  \textit{// visited nodes. Note that the passed $ep$ is a set of points, not a single node!}
+\STATE $W \leftarrow ep$ \textit{// set of final results (updated during search)}
+\STATE $C \leftarrow ep$ \textit{// set of candidate nodes for search steps}
+
+\WHILE{$|C| > 0$}
+    \STATE $c \leftarrow$ extract nearest element from $C$ to $q$
+    \STATE $f \leftarrow$ get furthest element from $W$ to $q$
+
+    \IF{$distance(q, c) > distance(q, f)$}
+        \STATE \textbf{break}
+    \ENDIF
+
+    \FOR{\textit{each} $e \in neighbourhood(c)$ at layer $l_c$}
+        \IF{$e\notin v$}
+            \STATE $v \leftarrow v \bigcup e$
+            \STATE $f \leftarrow$ get furthest element from $W$ to $q$
+
+            \IF{$distance(q, e) < distance(q, f)$ or $|W| < ef$}
+                \STATE $C \leftarrow C \bigcup e$
+                \STATE $W \leftarrow W \bigcup e$
+
+                \IF{$|W| > ef$}
+                    \STATE remove furthest element from $W$ to $q$
+                \ENDIF
+            \ENDIF
+        \ENDIF
+    \ENDFOR
+\ENDWHILE
+\RETURN $W$
+
+\end{algorithmic}
+\end{algorithm}    
+\end{frame}
+
+\begin{frame}[t]{Search: how to select neighbors (simple version)?}
+\begin{itemize}
+    \item This is the simplest version of a selection method for neighbors
+    \item It may lead disconnected graphs, where few nodes are not properly linked to the others
+    \item It's simpler and faster than other heuristics (perfect for us)
+\end{itemize}
+
+
+\begin{algorithm}[H]
+\captionsetup{font=scriptsize}
+\caption{Select Neighbors Simple}
+\begin{algorithmic}[1]
+\algsetup{linenosize=\tiny}
+\scriptsize
+\REQUIRE base element $q$, candidate elements $C$, number of neighbors to return $K$
+\ENSURE $K$ nearest elements to $q$
+
+\RETURN $K$ nearest elements from $C$ to $q$
+
+\end{algorithmic}
+\end{algorithm}        
+\end{frame}
+
+
+\begin{frame}{Insert}
+\vspace{-5pt}
+\begin{algorithm}[H]
+\captionsetup{font=scriptsize}
+\caption{Insert}
+\begin{algorithmic}[1]
+\tiny
+\algsetup{linenosize=\tiny}
+
+\REQUIRE multilayer graph $hnsw$, new element $q$, number of connections per node $M_{max}$, size of dynamic candidate list $efConstruction$, normalization factor $m_L$
+
+\ENSURE update $hnsw$ inserting new element $q$
+
+\STATE $W \leftarrow \emptyset$ \textit{// list for the currently found nearest neighbors}
+\STATE $ep \leftarrow$ get enter point for $hnsw$
+\STATE $L \leftarrow$ level of $ep$ \textit{// current top-layer for $hnsw$}
+\STATE $l \leftarrow $ \textbf{RandomLevel}$(m_L)$
+
+\FOR{$l_c \leftarrow L...l+1$}
+    \STATE $W \leftarrow$ \textbf{SearchLayer}$(q, ep, ef=1, l_c)$
+    \STATE $ep \leftarrow$ get the nearest element from $W$ to $q$
+\ENDFOR
+
+\FOR{$l_c \leftarrow $ min$(L, l)...0$}
+    \STATE $W \leftarrow$ \textbf{SearchLayer}$(q, ep, efConstruction, l_c)$
+    \STATE $neighbors \leftarrow$ \textbf{SelectNeighborsSimple}$(q, W, M)$
+    \STATE add \textit{bidirectional} connections from \textit{neighbors} to $q$ at layer $l_c$
+    
+    \FOR{each $e \in neighbors$}
+        \STATE $eConn \leftarrow neighbourhood(e)$ at layer $l_c$
+        \IF{$|eConn|$ > $M_{max}$}
+            \STATE $eNewConn \leftarrow$ SelectNeighborsSimple $(e, eConn, M_{max})$
+            \STATE set $neighbourhood(e)$ at layer $l_c$ to $eNewCon$
+        \ENDIF
+    \ENDFOR
+    \STATE $ep \leftarrow W$
+\ENDFOR
+
+\IF{$l > L$}
+    \STATE set enter point for $hnsw$ to $q$
+\ENDIF
+
+\end{algorithmic}
+\end{algorithm}        
+\end{frame}
+
+
+\begin{frame}{References}
+\bibliographystyle{acm}
+\bibliography{references}
+\end{frame}
+
+\end{document}

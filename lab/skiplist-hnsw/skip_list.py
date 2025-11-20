@@ -4,11 +4,11 @@ from typing import List, Optional
 from utils import display_skip_list
 
 # for replicability
-random.seed(130399)
+random.seed(42)
 
 
 class SkipListNode:
-    def __init__(self, item: int, level: int = 0) -> None:
+    def __init__(self, item: Optional[int], level: int = 0) -> None:
         self.item = item
         self.level = level
         self.forward: List[Optional["SkipListNode"]] = [None] * (level + 1)
@@ -98,9 +98,14 @@ class SkipList:
 
 
 if __name__ == "__main__":
-    s = SkipList(p=0.75, max_level=5)
+    s = SkipList(p=0.5, max_level=5)
 
-    for _ in range(10):
-        s.insert(random.randrange(0, 100))
+    # for _ in range(10):
+    #     s.insert(random.randrange(0, 100))
+
+    s.insert(10)
+    s.insert(20)
+
+    s.insert(5)
 
     display_skip_list(s)

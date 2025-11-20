@@ -1,1 +1,16 @@
+.git
 .DS*
+
+**__pycache__**
+**.venv
+**.csv
+
+blend-duckdb
+
+lab/*/slides/*
+lab/*/solutions/*
+
+!lab/*/slides/*.tex
+!lab/*/slides/*.bib
+!lab/*/slides/*.pdf
+!lab/*/slides/images
