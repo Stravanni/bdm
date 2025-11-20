@@ -252,7 +252,7 @@
 			\STATE $i_1 = \text{hash}(x) \pmod{B}$
 			\STATE $i_2 = i_1 \oplus \text{hash}(f) \pmod{B}$
 
-			\IF{$buckets[i_1] or buckets[i_2] has f$}
+			\IF{$buckets[i_1] \text{ or } buckets[i_2] \text{ has } f$}
 			\STATE Remove a copy of $f$ from this bucket
 			\RETURN \texttt{True}
 			\ENDIF
@@ -306,12 +306,12 @@
 		\begin{algorithmic}[1]
 			\algsetup{linenosize=\scriptsize}
 			\scriptsize
-			\REQUIRE $x$ query item
+			\REQUIRE $H$ list of hash functions, $M$ table storing $[dxw]$ counts, $x$ query item
 			\ENSURE An upper-bound of the occurences of $x$ in the inserted data
 			\STATE $values = \emptyset$
 			\FOR{$i$ in 1..$d$}
 			\STATE $j = H[i](x) \pmod{w}$
-			\STATE $values = values \cup H[i][j]$
+			\STATE $values = values \cup M[i][j]$
 			\ENDFOR
 			\RETURN $min(values)$
 		\end{algorithmic}

@@ -8,7 +8,7 @@
 blend-duckdb
 
 lab/*/slides/*
-lab/*/solutions/*
+# lab/*/solutions/*
 
 !lab/*/slides/*.tex
 !lab/*/slides/*.bib

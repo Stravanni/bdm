@@ -74,7 +74,6 @@ def test_cms(
     expected counts diverges against the actual ones.
     The parameter n specify how many URLs we want to insert into the sketch.
     """
-
     weights = random.choices(range(100), k=len(insert_urls))
     total_weight = sum(weights)
     weights = [w / total_weight for w in weights]  # we normalize the weights
