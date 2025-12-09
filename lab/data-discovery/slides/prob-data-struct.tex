@@ -1,0 +1,247 @@
+\documentclass{beamer}
+\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage{caption}
+\usepackage{algorithmic}
+\usepackage{verbatim}
+\usepackage{anyfontsize}
+
+\usetheme{moloch}
+
+\usepackage{url}
+
+\title{Data Discovery in Data Lakes}
+\subtitle{Big Data Management and Governance}
+\author{Prof. Giovanni Simonini, Giovanni Malaguti}
+\institute{University of Modena and Reggio Emilia}
+\date{\today}
+
+
+\begin{document}
+
+\maketitle
+
+\begin{frame}[fragile, t]{Details of the Lab (1)}
+	\begin{itemize}
+		\item We will apply BLEND, a framework to perform data discovery in data lakes.
+		\item We will create the index, understand its key concepts and which use-cases it can target.
+		\item In general, we will understand what are the main challenges when searching among
+		      large collection of datasets.
+	\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile, t]{Details of the Lab (2)}
+	\begin{itemize}
+		\item Clone (or update) the repository \url{https://github.com/Stravanni/bdm.git}.
+		\item Solutions will be uploaded at the end of the lab.
+	\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile, t]{Details of the Lab (3-*nix/Mac)}
+	Open a shell and move to the current lab folder.
+	\begin{verbatim}
+    $ cd /path/to/the/cloned/repo
+  \end{verbatim}
+
+	There create the Python virtual environment. You can use any python environment manager (conda, uv, poetry, ...).
+	Here, for simplicity, we will use the Python venv module:
+	\begin{verbatim}
+      (skiplist-hnsw)$ python -m venv .venv
+  \end{verbatim}
+
+	Activate the environment:
+	\begin{verbatim}
+      (skiplist-hnsw)$ source .venv/bin/activate
+  \end{verbatim}
+
+	Install the required packages:
+	\begin{small}
+		\begin{verbatim}
+      (skiplist-hnsw)$ pip install -r requirements.txt
+  \end{verbatim}
+	\end{small}
+\end{frame}
+
+\begin{frame}[fragile, t]{Details of the Lab (3-Windows)}
+	Open a command-line prompt (e.g. Powershell). Then, move to the current lab folder.
+	\begin{verbatim}
+    $ cd path\to\the\cloned\repo 
+  \end{verbatim}
+
+	There create the Python virtual environment. You can use any python env manager (conda, uv, poetry, ...).
+	Here, for simplicity, we will use the Python venv module:
+	\begin{verbatim}
+      (skiplist-hnsw)$ python -m venv .venv
+  \end{verbatim}
+
+	Activate the environment:
+	\begin{verbatim}
+      (skiplist-hnsw)$ .venv/Scripts/activate
+  \end{verbatim}
+
+	Install the required packages:
+	\begin{small}
+		\begin{verbatim}
+      (skiplist-hnsw)$ pip install -r requirements.txt
+  \end{verbatim}
+	\end{small}
+\end{frame}
+
+\begin{frame}[fragile, t]{Details of the Lab (4)}
+	To open a Jupyter notebook, you can use VS Code, as it supports well notebooks,
+	or you can install jupyter and then run in a terminal "jupyer notebook" to open the jupyer client and
+	modify the files from there.
+\end{frame}
+
+
+\begin{frame}[fragile, t]{Details of the Lab (5)}
+	In the folder bdm/lab/data-discovery/data there are the files modena.zip and undata.zip
+
+	Extract the files and place them inside the directory "data".
+\end{frame}
+
+
+
+\begin{frame}
+	\section{Data Discovery in Data Lakes}
+\end{frame}
+
+\begin{frame}[fragile, t]{Data Discovery in Data Lakes}
+	\begin{itemize}
+		\item Process of identifying datasets that may meet an information need
+		\item Given a user table, we may want to enhance its content by integrating
+		      it with additional information contained in related tables from a table corpus
+		\item How to detect related tables on large-scale scenarios?
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]{Data Discovery in Data Lakes}
+	The main data discovery tasks are:
+	\begin{itemize}
+		\item Keyword Search;
+		\item Join Search;
+		\item Union Search;
+		\item Join-Correlation Search;
+	\end{itemize}
+
+	and there are two main approaches to solve these tasks:
+	\begin{itemize}
+		\item Overlap-based;
+		\item Semantic-based;
+	\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile, t]{Data Discovery: Join Discovery}
+	Given a user dataset and one of its columns, we want to identify all those tables
+	in the table corpus that can be joined with it on the query column.
+
+	For instance, the table below can be joined on the “Postal” and “Postal Code” columns.
+
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.9\linewidth]{images/join.png}
+		\captionsetup{font=scriptsize}
+		\caption{Example of Joinable Tables from \cite{esmailoghli2021mate}}
+		\label{fig:join}
+	\end{figure}
+
+\end{frame}
+
+
+\begin{frame}[fragile, t]{Data Discovery: Union Discovery}
+	Given a user dataset, we want to identify all those tables in the table corpus
+	that can be unioned with the query dataset, on all its columns or on a relevant subset
+
+	For instance, the table below can be unioned on all their columns.
+
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.9\linewidth]{images/union.png}
+		\captionsetup{font=scriptsize}
+		\caption{Example of Unionable Tables from \cite{nargesian2018table}}
+		\label{fig:union}
+	\end{figure}
+\end{frame}
+
+
+\begin{frame}[fragile, t]{Data Discovery: Join-Correlation Discovery}
+	Differently from the basic join discovery task, in this case we want to sort our
+	results on a after-join correlation between a numerical column of our query dataset
+	and another column from the joined dataset.
+
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.9\linewidth]{images/correlation.png}
+		\captionsetup{font=scriptsize}
+		\caption{Example of Join-Correlated Tables from \cite{qcr}}
+		\label{fig:correlation}
+	\end{figure}
+\end{frame}
+
+\begin{frame}[fragile, t]{Data Discovery: Overlap-based approaches}
+	Manipulate the datasets values in order to quickly identify exact overlaps between
+	a query table and any other table in the corpus.
+	In some cases, probabilistic data structures are (MinHash, LSH, etc.) are used.
+
+	Pros:
+	\begin{itemize}
+		\item More scalable, simpler and effective than semantic-based for some use-cases;
+		\item Do not require specialized models or tools (embedding models);
+	\end{itemize}
+
+	Cons:
+	\begin{itemize}
+		\item Semantic relationships cannot be identified;
+	\end{itemize}
+
+	In our lab session we will use BLEND \cite{blend}, which belongs to this class.
+\end{frame}
+
+
+\begin{frame}[fragile, t]{Data Discovery: Semantic-based approaches}
+	Semantic-based approaches rely on embedding datasets at different
+	granularities (row, column, cell, etc.) and index the embedding vectors into
+	a vector index.
+
+	Pros:
+	\begin{itemize}
+		\item Fast query performance;
+		\item Semantic matches;
+	\end{itemize}
+
+	Cons:
+	\begin{itemize}
+		\item Not easy to train a model for table embedding;
+		\item Highly-specialized indexes;
+		\item GPU is mandatory for large-scale scenarios;
+	\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile, t]{Data Discovery with BLEND}
+	BLEND extends the DataXFormer inverted idex to support also n-ary Join Discovery
+	and Join-Correlation Discovery searches.
+	\begin{itemize}
+		\item \textbf{SuperKey}: from \cite{esmailoghli2021mate}, allows to
+		      search for n-ary joins;
+		\item \textbf{QCR}: from \cite{qcr}, allows to perform join-correlation queries.
+
+	\end{itemize}
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.9\linewidth]{images/dataxformer.png}
+		\captionsetup{font=scriptsize}
+		\caption{BLEND record examples.}
+	\end{figure}
+
+\end{frame}
+
+\begin{frame}[allowframebreaks]{References}
+	\bibliographystyle{acm}
+	\bibliography{references}
+\end{frame}
+
+\end{document}

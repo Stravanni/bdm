@@ -4,11 +4,14 @@
 **__pycache__**
 **.venv
 **.csv
+**.db
 
-blend-duckdb
+
+from_milan
+tables
 
 lab/*/slides/*
-# lab/*/solutions/*
+lab/*/solutions/*
 
 !lab/*/slides/*.tex
 !lab/*/slides/*.bib

@@ -1,0 +1,15 @@
+pandas
+pyarrow
+polars
+duckdb
+scipy
+
+tabulate
+bokeh==3.7.3
+matplotlib
+
+urllib3
+requests
+fake_useragent
+
+ipykernel
