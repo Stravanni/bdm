@@ -9,6 +9,7 @@
 
 from_milan
 tables
+prepare*
 
 lab/*/slides/*
 lab/*/solutions/*
