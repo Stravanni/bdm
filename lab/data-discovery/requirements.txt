@@ -1,15 +1,15 @@
+# datascience
 pandas
 pyarrow
 polars
 duckdb
 scipy
 
+# visualization
+tqdm
 tabulate
 bokeh==3.7.3
 matplotlib
 
-urllib3
-requests
-fake_useragent
-
+# interactive python kernel 
 ipykernel

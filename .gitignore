@@ -11,8 +11,9 @@ from_milan
 tables
 prepare*
 
+# lab/*/solutions/*
+
 lab/*/slides/*
-lab/*/solutions/*
 
 !lab/*/slides/*.tex
 !lab/*/slides/*.bib

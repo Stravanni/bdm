@@ -2,6 +2,9 @@ import os
 import sys
 from pathlib import Path
 
+blend_module_path = Path(os.path.dirname(__file__), "modules", "BLEND")
+sys.path.append(str(blend_module_path.resolve()))
+
 from blend import BLEND
 
 
